@@ -1,7 +1,7 @@
 from distutils.core import setup
 setup(
-    name="pvc_package",
-    packages=["pvc_package"],
+    name="Python-version-control",
+    packages=["Python-version-control"],
     version="0.1",
     description="A python version control system",
     author="Charl Kruger, Stephan Kashkarov",
