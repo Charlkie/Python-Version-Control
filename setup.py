@@ -1,8 +1,8 @@
 from distutils.core import setup
 setup(
     name="pvc_package",
-    packages =["pvc_package"],
-    version = "0.1",
+    packages=["pvc_package"],
+    version="0.1",
     description="A python version control system",
     author="Charl Kruger, Stephan Kashkarov",
     author_email="charl.kruger@me.com, Kashkarovwork@gmail.com",
