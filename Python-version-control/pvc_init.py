@@ -47,17 +47,7 @@ class Init(PVC):
 			print("PCV already exists")
 
 
-	def test(self):
-		"""The testing method for pvc-init."""
-		hash = hash.Hash_Obj()
-		# keep these
-		hash.hash_obj_dir(".pyvcs/objects", folders)
-		added_files=['test.txt']
-		folders= [(hash.hash_file(file)[0:2],hash.hash_file(file)[2:-1]) for file in added_files]
-		print(folders[0][0])
-		hash.create_blob(folders, added_files)
-		# keep these
-		# print(input("file to decode: "))
+
 
 """Testing for initialiser"""
 if __name__ == "__main__":

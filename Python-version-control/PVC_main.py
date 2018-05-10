@@ -9,6 +9,7 @@ class PVC(object):
 		self.dir = os.getcwd()
 		self.repo = self.dir+'/.pvc'
 		self.folders = ['objects','info','refs','hooks']
+		self.blocksize = 65536 # 64 bytes
 
 	def force(command):
 		"""Base command for forcing git commands."""
