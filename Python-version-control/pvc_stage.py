@@ -30,7 +30,13 @@ class Stage(PVC):
 		self.files = list_args
 		self.staged = []
 		self.argv = sys.argv
+		self.num = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+		self.char = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
+		 			 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+					 'Y', 'Z' ]
+		self.name = self.num[0]+self.sum
 		self.h = hashlib.sha1()
+
 		PVC.__init__(self)
 
 	def sort(self):
@@ -42,15 +48,14 @@ class Stage(PVC):
 				not_found.append(file)
 
 	def hash(self, filename):
-		print(filename)
+		name = self.dir+'/'+'filename'
 		with open(filename, 'rb') as f:
 			buf = f.read(self.blocksize)
 			while len(buf) > 0:
 				self.h.update(buf)
 				buf = f.read(self.blocksize)
-		hex= self.h.hexdigest()
-		print(hex)
-		return hex
+		content_hash = self.h.hexdigest()
+		filename_hash = self.h
 
 	def create_blob(self, folders, files, root='.pvc/objects'):
 		print("Busy making blob")
