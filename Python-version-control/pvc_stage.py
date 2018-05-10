@@ -22,65 +22,60 @@ from pvc_main import PVC
 import os
 import sys
 import hashlib
+import gzip
+import shutil
+from random import randint as r
 
 class Stage(PVC):
 	"""The main class for staging things in pvc."""
 	def __init__(self, list_args):
 		"""The initialiser for pvc stage."""
+		if not os.path.exists(os.getcwd()+'/.pvc'):
+			raise IOError("Repository has not been initialized, try -- pvc init")
 		self.files = list_args
 		self.staged = []
 		self.argv = sys.argv
-		self.num = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
-		self.char = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
-		 			 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
-					 'Y', 'Z' ]
-		self.name = self.num[0]+self.sum
-		self.h = hashlib.sha1()
-
+		self.hash = hashlib.sha1()
+		#integers 1-10 and letters A-Z
+		self.char = [[str(i) for i in range(10)],[chr(x) for x in range(65,91)]]
+		self.taken = []
 		PVC.__init__(self)
 
-	def sort(self):
+
+
+	def add(self):
 		not_found = []
-		for file in self.argv:
+		for file in self.argv[2:]:
 			if os.path.exists(self.dir+'/'+file) == True:
+				print('-added', file)
 				Stage.hash(self, file)
-			else:
-				not_found.append(file)
+			else: not_found.append(file)
+		if len(not_found) > 0:
+			print('pvc was unable to find these files:',
+					', '.join([file for file in not_found]))
 
-	def hash(self, filename):
-		name = self.dir+'/'+'filename'
-		with open(filename, 'rb') as f:
-			buf = f.read(self.blocksize)
-			while len(buf) > 0:
-				self.h.update(buf)
-				buf = f.read(self.blocksize)
-		content_hash = self.h.hexdigest()
-		filename_hash = self.h
+	def hash(self, file):
+		name = self.dir+'/'+file
+		with open(name, 'rb') as f:
+			while True:
+				content = f.read(self.blocksize)
+				if not content:
+					break
+				self.hash.update(data)
+		content_hash = self.hash.hexdigest()
+		if not os.path.exists(self.repo+'/objects/'+content_hash[0:2]):
+			Stage.blob(self, content_hash, file)
 
-	def create_blob(self, folders, files, root='.pvc/objects'):
-		print("Busy making blob")
-		for i in range(len(folders)):
-			path = os.path.join(root,folders[i][0])
-			os.makedirs(path)
-			# Compresing the files
-			with open(files[i], 'rb') as f_in, gzip.open(path+'/'+folders[i][1],"wb") as f_out:
-				shutil.copyfileobj(f_in, f_out)
-
-	def test(self):
-		"""The testing method for pvc-init."""
-		hash = hash.Hash_Obj()
-		# keep these
-		hash.hash_obj_dir(".pyvcs/objects", folders)
-
-		print(folders[0][0])
-		hash.create_blob(folders, added_files)
-		# keep these
-		# print(input("file to decode: "))
+	def blob(self, hash, file):
+		path = os.path.join(self.repo+'/objects/',hash[0:2])
+		os.makedirs(path)
+		# Compresing the files
+		with open(file, 'rb') as f_in, gzip.open(path+'/'+hash[2:-1],"wb") as f_out:
+			shutil.copyfileobj(f_in, f_out)
 
 if __name__ == '__main__':
 	stage = Stage(['*'])
-	stage.sort()
-	# folders= [(stage.sort()[0:2],stage.sort()[2:-1]) for file in added_files]
+	stage.add()
 	# stage.create_blob(folders, added_files)
 
 
