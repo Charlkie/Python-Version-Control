@@ -30,8 +30,6 @@ class Stage(PVC):
 	"""The main class for staging things in pvc."""
 	def __init__(self, list_args):
 		"""The initialiser for pvc stage."""
-		if not os.path.exists(os.getcwd()+'/.pvc'):
-			raise IOError("Repository has not been initialized, try -- pvc init")
 		self.files = list_args
 		self.staged = []
 		self.argv = sys.argv
@@ -41,20 +39,23 @@ class Stage(PVC):
 		self.taken = []
 		PVC.__init__(self)
 
-
-
 	def add(self):
 		not_found = []
 		for file in self.argv[2:]:
-			if os.path.exists(self.dir+'/'+file) == True:
-				print('-added', file)
-				Stage.hash(self, file)
-			else: not_found.append(file)
+			path = self.dir+'/'+file
+			if os.path.exists(path) == True:
+				if os.path.isfile(path) == True:
+					print('-added', file)
+					Stage.hash_file(self, file)
+				else:
+					Stage.hash_dir(self, file)
+			else:
+				not_found.append(file)
 		if len(not_found) > 0:
 			print('pvc was unable to find these files:',
 					', '.join([file for file in not_found]))
 
-	def hash(self, file):
+	def hash_file(self, file):
 		name = self.dir+'/'+file
 		with open(name, 'rb') as f:
 			while True:
@@ -65,6 +66,17 @@ class Stage(PVC):
 		content_hash = self.hash.hexdigest()
 		if not os.path.exists(self.repo+'/objects/'+content_hash[0:2]):
 			Stage.blob(self, content_hash, file)
+
+	def hash_dir(self, dir):
+		print('hash_dir()')
+		hashes = []
+		for path, dirs, files in os.walk(dir):
+			for file in sorted(files): # we sort to guarantee that files will always go in the same order
+				hashes.append(sha1OfFile(os.path.join(path, file)))
+			for dir in sorted(dirs): # we sort to guarantee that dirs will always go in the same order
+				hashes.append(hash_dir(os.path.join(path, dir)))
+			break # we only need one iteration - to get files and dirs in current directory
+		return print(str(hash(''.join(hashes))))
 
 	def blob(self, hash, file):
 		path = os.path.join(self.repo+'/objects/',hash[0:2])
@@ -77,35 +89,3 @@ if __name__ == '__main__':
 	stage = Stage(['*'])
 	stage.add()
 	# stage.create_blob(folders, added_files)
-
-
-
-
-
-
-
-
-	# def save_dir(self, file, path, dir_files, files):
-	# 	for _file in os.listdir(path):
-	# 		new_path = path+'/'+_file
-	# 		if os.path.isdir(new_path) == True:
-	# 			Stage.save_dir(self, _file, new_path, {}, [])
-	# 		else:
-	# 			files.append(_file)
-	# 	dir_files[file] = files
-	# 	self.staged.append(dir_files)
-	#
-	# def add(self):
-	# 	if self.files[0] == '*':
-	# 		for file in os.listdir(self.dir):
-	# 			if os.path.isdir(file) == True:
-	# 				if file != '.pvc' and file !='.git':
-	# 					dir_files = {}
-	# 					files = []
-	# 					Stage.save_dir(self, file, self.dir+'/'+file, dir_files, files)
-	# 			else:
-	# 				self.staged.append(file)
-	# 		print(self.staged)
-	# 	else:
-	# 		for file in self.files:
-	# 			self.staged[file] = os.path.isdir(file)
