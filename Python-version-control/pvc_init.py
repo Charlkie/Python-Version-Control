@@ -21,7 +21,9 @@ optional methods:
 from pvc_main import PVC
 import subprocess as sb
 import os
-import shutil #TESTING
+import shutil
+# TESTING
+
 
 class Init(PVC):
 	"""The class for pvc-initialise"""
@@ -31,22 +33,22 @@ class Init(PVC):
 		PVC.__init__(self)
 
 	def init_repo(self):
+		"""Directory initialization function."""
 		# TESTING everything inside 1st if statement
-		if os.path.exists(self.repo) == True:
+		if os.path.exists(self.repo):
 			shutil.rmtree(self.repo+'/')
 			print('Deleted currrent repository')
 		# Creates initial directories and folders
-		if os.path.exists(self.repo) == False:
+		if not os.path.exists(self.repo):
 			os.makedirs(self.repo)
 			for folder in self.folders:
 				os.makedirs(self.repo+'/'+folder)
 			for file in self.init_files:
-				f = open(self.repo+'/'+file, 'w+'); f.close()
+				f = open(self.repo+'/'+file, 'w+')
+				f.close()
 			print("Initialized empty repository in"+self.repo)
 		else:
 			print("PCV already exists")
-
-
 
 
 """Testing for initialiser"""
