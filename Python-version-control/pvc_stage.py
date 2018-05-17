@@ -24,9 +24,9 @@ import os
 import sys
 import hashlib
 import gzip
+import tarfile
 import shutil
 from random import randint as r
-
 
 class Stage(PVC):
 	"""The main class for staging things in pvc."""
@@ -35,8 +35,6 @@ class Stage(PVC):
 		self.files = list_args
 		self.staged = []
 		self.argv = sys.argv
-		self.foo = "foo"
-		self.hash = hashlib.sha1
 		if not os.path.exists(os.getcwd()+'/.pvc'):
 			print("Repository has not been initialized, try -- pvc init")
 			sys.exit()
@@ -45,61 +43,54 @@ class Stage(PVC):
 	def add(self):
 		"""Main Function of pvc-stage."""
 		not_found = []
-		print(self.argv[2:])
+		unstaged = 0
 		for obj in self.argv[2:]:
 			path = self.dir+'/'+obj
 			if os.path.exists(path):
 				if os.path.isfile(path):
 					content_hash = Stage.hash_file(self, path)
-				#else:
-					#content_hash = Stage.hash_dir(self, path)
-				#print('-added', obj)
 				if not os.path.exists(self.repo+'/objects/'+content_hash[0:2]):
-					Stage.blob(self, content_hash, obj)
+					if content_hash:
+						Stage.blob(self, obj, content_hash)
+					else: Stage.blob(self, obj)
+				else: unstaged+=1
 			else:
 				not_found.append(obj)
+			if unstaged == len(self.argv[2:]): print("Stage up too date! Make changes silly ;)")
 		if len(not_found) > 0:
 			print('pvc was unable to find these files:',
 				  ', '.join([file for file in not_found]))
 
+	"""Hashes the files with the sha1 hash"""
 	def hash_file(self, filepath, obj="file"):
+		hash = hashlib.sha1()
 		with open(filepath, 'rb') as f:
 			while True:
 				block = f.read(self.blocksize)
 				if not block:break
-				self.hash().update(block)
-			if obj == "file": print("HASH",self.hash().hexdigest(),filepath)
-			return self.hash().hexdigest()
-
-	#THIS ONE
-	def hash_dir(self, dirname):
-		print("DIRECTORY",dirname)
-		hash_val = []
-		for root, dirs, files in os.walk(dirname, topdown=True, followlinks=False):
-			if not re.search(r'/\.', root):
-				for f in files:
-					if not f.startswith('.') and not re.search(r'/\.', f):
-						hash_val.extend([Stage.hash_file(self, os.path.join(root, f))])
-				hash_val.extend([  ])
-				print("HASH",Stage.hash_reduce(self, hash_val),"NAME", dirname[-8:-1])
-		return Stage.hash_reduce(self, hash_val)
+				hash.update(block)
+			#if obj == "file": print("HASH",hash.hexdigest(),filepath)
+			return hash.hexdigest()
 
 	#THIS ONE ALSO
 	def hash_reduce(self, hashlist):
+		hash = hashlib.sha1()
 		for val in sorted(hashlist):
-			self.hash().update(val.encode('utf-8'))
-		return self.hash().hexdigest()
+			hash.update(val.encode('utf-8'))
+		return hash.hexdigest()
 
-	def blob(self, hash, file):
+	def blob(self, file, hash=False):
 		"""Hash file container creation function."""
 		path = os.path.join(self.repo+'/objects/', hash[0:2])
 		os.makedirs(path)
 		# Compresing the files
-		if os.path.isfile(file):
-			with open(file, 'rb') as f_in, gzip.open(path+'/'+hash[2:-1], "wb") as f_out:
-				shutil.copyfileobj(f_in, f_out)
-		else: pass
+		if hash:
+			with open(file, 'rb') as f, gzip.open(path+'/'+hash[2:-1], "wb") as zipped:
+				shutil.copyfileobj(f, zipped)
+		else:
+			with tarfile.open(hash[2:-1], "w:gz") as tar:
+				tar.add(file, arcname=os.path.basename(path))
 
 if __name__ == '__main__':
-	stage = Stage(['*'])
+	stage = Stage(['*']) #['#'] represents all command line arguments
 	stage.add()
