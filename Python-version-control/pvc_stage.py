@@ -45,38 +45,35 @@ class Stage(PVC):
 	def add(self):
 		"""Main Function of pvc-stage."""
 		not_found = []
+		print(self.argv[2:])
 		for obj in self.argv[2:]:
-			print("object:", obj, end=" ")
 			path = self.dir+'/'+obj
 			if os.path.exists(path):
 				if os.path.isfile(path):
-					Stage.hash_obj(self, obj)
-				else:
-					Stage.hash_obj(self, obj, 'dir')
+					content_hash = Stage.hash_file(self, path)
+				#else:
+					#content_hash = Stage.hash_dir(self, path)
 				#print('-added', obj)
+				if not os.path.exists(self.repo+'/objects/'+content_hash[0:2]):
+					Stage.blob(self, content_hash, obj)
 			else:
 				not_found.append(obj)
 		if len(not_found) > 0:
 			print('pvc was unable to find these files:',
-									', '.join([file for file in not_found]))
+				  ', '.join([file for file in not_found]))
 
-	def hash_obj(self, obj, type="file"):
-		"""Hash creation function."""
-		name = self.dir+'/'+obj
-		if type == "file":
-			content_hash = Stage.hash_file(self, name)
-			print("FILE", content_hash)
-		else:
-			print("DIRECTORY", end=" ")
-			content_hash = Stage.hash_dir(self, name)
-		#content_hash = Stage.hash_file(self, name) if type == 'file' else Stage.hash_dir(self, name) #dir
-		# print("content_hash:",content_hash)
-		if not os.path.exists(self.repo+'/objects/'+content_hash[0:2]):
-			Stage.blob(self, content_hash, obj)
+	def hash_file(self, filepath, obj="file"):
+		with open(filepath, 'rb') as f:
+			while True:
+				block = f.read(self.blocksize)
+				if not block:break
+				self.hash().update(block)
+			if obj == "file": print("HASH",self.hash().hexdigest(),filepath)
+			return self.hash().hexdigest()
 
 	#THIS ONE
 	def hash_dir(self, dirname):
-		hash_func = hashlib.sha1
+		print("DIRECTORY",dirname)
 		hash_val = []
 		for root, dirs, files in os.walk(dirname, topdown=True, followlinks=False):
 			if not re.search(r'/\.', root):
@@ -84,18 +81,8 @@ class Stage(PVC):
 					if not f.startswith('.') and not re.search(r'/\.', f):
 						hash_val.extend([Stage.hash_file(self, os.path.join(root, f))])
 				hash_val.extend([  ])
-				print("HASH",Stage.hash_reduce(self, hash_val))
+				print("HASH",Stage.hash_reduce(self, hash_val),"NAME", dirname[-8:-1])
 		return Stage.hash_reduce(self, hash_val)
-
-	#Hash File
-	def hash_file(self, filepath):
-		with open(filepath, 'rb') as f:
-			while True:
-				block = f.read(self.blocksize)
-				if not block:break
-				self.hash().update(block)
-			# print("directory: ",self.hash().hexdigest())
-			return self.hash().hexdigest()
 
 	#THIS ONE ALSO
 	def hash_reduce(self, hashlist):
