@@ -19,6 +19,7 @@ optional methods:
 """
 
 from pvc_main import PVC
+import re
 import os
 import sys
 import hashlib
@@ -34,69 +35,84 @@ class Stage(PVC):
 		self.files = list_args
 		self.staged = []
 		self.argv = sys.argv
-		self.hash = hashlib.sha1()
-		# integers 1-10 and letters A-Z
-		self.char = [
-			[str(i) for i in range(10)],
-			[chr(x) for x in range(65, 91)]
-			]
-		self.taken = []
+		self.foo = "foo"
+		self.hash = hashlib.sha1
+		if not os.path.exists(os.getcwd()+'/.pvc'):
+			print("Repository has not been initialized, try -- pvc init")
+			sys.exit()
 		PVC.__init__(self)
 
 	def add(self):
 		"""Main Function of pvc-stage."""
 		not_found = []
-		for file in self.argv[2:]:
-			path = self.dir+'/'+file
+		for obj in self.argv[2:]:
+			print("object:", obj, end=" ")
+			path = self.dir+'/'+obj
 			if os.path.exists(path):
 				if os.path.isfile(path):
-					print('-added', file)
-					Stage.hash_file(self, file)
+					Stage.hash_obj(self, obj)
 				else:
-					Stage.hash_dir(self, file)
+					Stage.hash_obj(self, obj, 'dir')
+				#print('-added', obj)
 			else:
-				not_found.append(file)
+				not_found.append(obj)
 		if len(not_found) > 0:
 			print('pvc was unable to find these files:',
 									', '.join([file for file in not_found]))
 
-	def hash_file(self, file):
+	def hash_obj(self, obj, type="file"):
 		"""Hash creation function."""
-		name = self.dir+'/'+file
-		with open(name, 'rb') as f:
-			while True:
-				content = f.read(self.blocksize)
-				if not content:
-					break
-				self.hash.update(data)
-		content_hash = self.hash.hexdigest()
+		name = self.dir+'/'+obj
+		if type == "file":
+			content_hash = Stage.hash_file(self, name)
+			print("FILE", content_hash)
+		else:
+			print("DIRECTORY", end=" ")
+			content_hash = Stage.hash_dir(self, name)
+		#content_hash = Stage.hash_file(self, name) if type == 'file' else Stage.hash_dir(self, name) #dir
+		# print("content_hash:",content_hash)
 		if not os.path.exists(self.repo+'/objects/'+content_hash[0:2]):
-			Stage.blob(self, content_hash, file)
+			Stage.blob(self, content_hash, obj)
 
-	def hash_dir(self, dir):
-		"""Hash creation for whole directories."""
-		print('hash_dir()')
-		hashes = []
-		for path, dirs, files in os.walk(dir):
-			for file in sorted(files):
-				# We sort to guarantee that files will always go in the same order
-				hashes.append(hashlib.sha1OfFile(os.path.join(path, file)))
-			for dir in sorted(dirs):
-				# We sort to guarantee that dirs will always go in the same order
-				hashes.append(hash_dir(os.path.join(path, dir)))
-			break
-			# We only need one iteration - to get files and dirs in current directory
-		return print(str(hash(''.join(hashes))))
+	#THIS ONE
+	def hash_dir(self, dirname):
+		hash_func = hashlib.sha1
+		hash_val = []
+		for root, dirs, files in os.walk(dirname, topdown=True, followlinks=False):
+			if not re.search(r'/\.', root):
+				for f in files:
+					if not f.startswith('.') and not re.search(r'/\.', f):
+						hash_val.extend([Stage.hash_file(self, os.path.join(root, f))])
+				hash_val.extend([  ])
+				print("HASH",Stage.hash_reduce(self, hash_val))
+		return Stage.hash_reduce(self, hash_val)
+
+	#Hash File
+	def hash_file(self, filepath):
+		with open(filepath, 'rb') as f:
+			while True:
+				block = f.read(self.blocksize)
+				if not block:break
+				self.hash().update(block)
+			# print("directory: ",self.hash().hexdigest())
+			return self.hash().hexdigest()
+
+	#THIS ONE ALSO
+	def hash_reduce(self, hashlist):
+		for val in sorted(hashlist):
+			self.hash().update(val.encode('utf-8'))
+		return self.hash().hexdigest()
 
 	def blob(self, hash, file):
 		"""Hash file container creation function."""
 		path = os.path.join(self.repo+'/objects/', hash[0:2])
 		os.makedirs(path)
 		# Compresing the files
-		with open(file, 'rb') as f_in, gzip.open(path+'/'+hash[2:-1], "wb") as f_out:
-			shutil.copyfileobj(f_in, f_out)
+		if os.path.isfile(file):
+			with open(file, 'rb') as f_in, gzip.open(path+'/'+hash[2:-1], "wb") as f_out:
+				shutil.copyfileobj(f_in, f_out)
+		else: pass
 
 if __name__ == '__main__':
 	stage = Stage(['*'])
 	stage.add()
-	# Stage.create_blob(folders, added_files)

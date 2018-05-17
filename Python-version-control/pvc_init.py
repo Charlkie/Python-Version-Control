@@ -17,13 +17,11 @@ optional methods:
 -m :: messege - adds a title to your repo, Defaults to "my_new_repo"
 """
 
-
 from pvc_main import PVC
 import subprocess as sb
 import os
 import shutil
 # TESTING
-
 
 class Init(PVC):
 	"""The class for pvc-initialise"""
