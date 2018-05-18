@@ -12,6 +12,7 @@ class Commit(PVC):
 			open(self.repo+'/index','w+')
 
 	def commit(self):
+		print("yes")
 		for subdir, dirs, files in os.walk(self.repo+'/objects'):
 			for file in files:
 				print(subdir[-2:]+file)
