@@ -1,0 +1,17 @@
+100644 -modes
+https://stackoverflow.com/questions/737673/how-to-read-the-mode-field-of-git-ls-trees-output/8347325#8347325
+
+
+inside a git commit object is [git cat-file -p master^{tree}]
+
+100644 blob d0043e3393d58ded4120a499b3fe445d4825254f    abc
+100644 blob 2a8886c3a1d13af85eeb8eabc6a6be9148ddde55    cba
+100644 blob 69f353c4b114b06ec96acca81597832947662f69    how_many_files.py
+100755 blob a4e2b3bfea2c4038c4383edbb5fc7eb7d874f030    temp.py
+100644 blob d1da9de889d74b966b655d559ed4700fa0810c8d    temp1.py
+040000 tree fa320c8045c4e57303e34944fcb632670471fe97    test
+
+inside tree [git cat-file -p fa320] this is the contents of the last tree in the above master tree
+
+100644 blob bc17da29826f3c051b01b07445c3de53b9457a30    apple.txt
+040000 tree cfdd299046645cf0de1cded693c2f31b86e26f69    apple
