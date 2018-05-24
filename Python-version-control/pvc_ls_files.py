@@ -10,10 +10,7 @@ class LsFiles(PVC):
 	def decide(self):
 		if self.argv[2] == '--stage':
 			"""read content of zipped file"""
-			PVC.decompress(self.index, self.index)
-			f = open(self.index, 'r')
-			print("".join(f.readlines()),end="")
-			PVC.compress(self.index, self.index)
+			PVC.read_zip(self, self.index, self.index)
 
 if __name__ == "__main__":
 	ls = LsFiles()

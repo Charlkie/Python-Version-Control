@@ -3,8 +3,11 @@ Python-version-control-stage.
 
 This file controls the staging function of PVC,
 staging allows you to select which files you want
-to commit to your repo. this can help when you don't
-want some files in your repo
+to commit to your repo.
+
+Goes through all system argument if files hashes the files contents and is it
+doesnt already exist adds a zipped version of this content to a
+directory in objects directory.
 
 Use case:
 use the command -
@@ -21,84 +24,74 @@ optional methods:
 from pvc_main import PVC
 import re
 import os
-import sys
+from sys import exit
 import hashlib
+import tarfile
 import gzip
+import zlib
 import shutil
-from random import randint as r
-
+import re
 
 class Stage(PVC):
 	"""The main class for staging things in pvc."""
 	def __init__(self, list_args):
 		"""The initialiser for pvc stage."""
-		self.files = list_args
-		self.staged = []
-		self.argv = sys.argv
-		self.foo = "foo"
-		self.hash = hashlib.sha1
 		if not os.path.exists(os.getcwd()+'/.pvc'):
 			print("Repository has not been initialized, try -- pvc init")
-			sys.exit()
+			exit()
 		PVC.__init__(self)
+		if not os.path.exists(self.index):
+			open(self.index, 'w+')
 
 	def add(self):
 		"""Main Function of pvc-stage."""
 		not_found = []
-		print(self.argv[2:])
+		compress = False
 		for obj in self.argv[2:]:
 			path = self.dir+'/'+obj
+			#cheks if file being staged exists
 			if os.path.exists(path):
 				if os.path.isfile(path):
-					content_hash = Stage.hash_file(self, path)
-				#else:
-					#content_hash = Stage.hash_dir(self, path)
-				#print('-added', obj)
-				if not os.path.exists(self.repo+'/objects/'+content_hash[0:2]):
-					Stage.blob(self, content_hash, obj)
+					content_hash=PVC.hash_file(self, path)
+					if not os.path.exists(self.obj+'/'+content_hash[:2]):
+						Stage.add_blob(self, content_hash, obj)
+						Stage.write_index(self, obj, content_hash)
+						compress = True
+				else:
+					#this means the object is a directory
+					for file in Stage.stage_dir(self, path):
+						content_hash=PVC.hash_file(self, file)
+						Stage.add_blob(self, content_hash, file[self.dirlen:])
+						b = file[self.dirlen:]
+						Stage.write_index(self, b, content_hash)
 			else:
 				not_found.append(obj)
 		if len(not_found) > 0:
 			print('pvc was unable to find these files:',
 				  ', '.join([file for file in not_found]))
+		if compress: PVC.compress(self.index, self.index)
 
-	def hash_file(self, filepath, obj="file"):
-		with open(filepath, 'rb') as f:
-			while True:
-				block = f.read(self.blocksize)
-				if not block:break
-				self.hash().update(block)
-			if obj == "file": print("HASH",self.hash().hexdigest(),filepath)
-			return self.hash().hexdigest()
+	def stage_dir(self, dir):
+		f = []
+		for subdir, dirs, files in os.walk(dir):
+			for file in files:
+				path = subdir+'/'+file
+				if file not in self.exclude: f.append(path)
+		return f
 
-	#THIS ONE
-	def hash_dir(self, dirname):
-		print("DIRECTORY",dirname)
-		hash_val = []
-		for root, dirs, files in os.walk(dirname, topdown=True, followlinks=False):
-			if not re.search(r'/\.', root):
-				for f in files:
-					if not f.startswith('.') and not re.search(r'/\.', f):
-						hash_val.extend([Stage.hash_file(self, os.path.join(root, f))])
-				hash_val.extend([  ])
-				print("HASH",Stage.hash_reduce(self, hash_val),"NAME", dirname[-8:-1])
-		return Stage.hash_reduce(self, hash_val)
+	def add_blob(self, hash, obj):
+		if not os.path.exists(self.obj+hash[0:2]):
+			print('-added', obj)
+			PVC.blob(self, hash, self.dir+'/'+obj)
 
-	#THIS ONE ALSO
-	def hash_reduce(self, hashlist):
-		for val in sorted(hashlist):
-			self.hash().update(val.encode('utf-8'))
-		return self.hash().hexdigest()
-
-	def blob(self, hash, file):
-		"""Hash file container creation function."""
-		path = os.path.join(self.repo+'/objects/', hash[0:2])
-		os.makedirs(path)
-		# Compresing the files
-		if os.path.isfile(file):
-			with open(file, 'rb') as f_in, gzip.open(path+'/'+hash[2:-1], "wb") as f_out:
-				shutil.copyfileobj(f_in, f_out)
-		else: pass
+	def write_index(self, path, hash):
+		#checks if the files has a compressed file signature
+		if r'x\xda' in str(open(self.index, 'rb').read()): #doesnt work with extre \ at end -- show Stephan
+			PVC.decompress(self.index, self.index)
+		f = open(self.index, 'a')
+		line = '100644 '+hash+' 0 '+path+'\n'
+		f.write(line); f.close()
+		# PVC.compress(self.index, self.index)
 
 if __name__ == '__main__':
 	stage = Stage(['*'])

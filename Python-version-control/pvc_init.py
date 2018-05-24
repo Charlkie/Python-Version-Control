@@ -39,8 +39,9 @@ class Init(PVC):
 		# Creates initial directories and folders
 		if not os.path.exists(self.repo):
 			os.makedirs(self.repo)
-			for folder in self.folders:
+			for folder in self.dirs:
 				os.makedirs(self.repo+'/'+folder)
+			open(self.exclude_dir,'w').write("""#put directories or files to exclude here\n.git\n.pvc""")
 			for file in self.init_files:
 				f = open(self.repo+'/'+file, 'w+')
 				f.close()
